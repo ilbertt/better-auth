@@ -47,53 +47,6 @@ export type GenerateIdFn = (options: {
 	size?: number | undefined;
 }) => string | false;
 
-/**
- * Configuration for dynamic base URL resolution.
- * Allows Better Auth to work with multiple domains (e.g., Vercel preview deployments).
- */
-export type DynamicBaseURLConfig = {
-	/**
-	 * List of allowed hostnames. Supports wildcard patterns.
-	 *
-	 * The derived host from the request will be validated against this list.
-	 * Uses the same wildcard matching as `trustedOrigins`.
-	 *
-	 * @example
-	 * ```ts
-	 * allowedHosts: [
-	 *   "myapp.com",           // Exact match
-	 *   "*.vercel.app",        // Any Vercel preview
-	 *   "preview-*.myapp.com"  // Pattern match
-	 * ]
-	 * ```
-	 */
-	allowedHosts: string[];
-
-	/**
-	 * Fallback URL to use if the derived host doesn't match any allowed host.
-	 * If not set, Better Auth will throw an error when the host doesn't match.
-	 *
-	 * @example "https://myapp.com"
-	 */
-	fallback?: string | undefined;
-
-	/**
-	 * Protocol to use when constructing the URL.
-	 * - `"https"`: Always use HTTPS (recommended for production)
-	 * - `"http"`: Always use HTTP (for local development)
-	 * - `"auto"`: Derive from `x-forwarded-proto` header or default to HTTPS
-	 *
-	 * @default "auto"
-	 */
-	protocol?: "http" | "https" | "auto" | undefined;
-};
-
-/**
- * Base URL configuration.
- * Can be a static string or a dynamic config for multi-domain deployments.
- */
-export type BaseURLConfig = string | DynamicBaseURLConfig;
-
 export interface BetterAuthRateLimitStorage {
 	get: (key: string) => Promise<RateLimit | null | undefined>;
 	set: (
@@ -423,29 +376,27 @@ export type BetterAuthOptions = {
 	 */
 	appName?: string | undefined;
 	/**
-	 * Base URL for the Better Auth. This is typically the
-	 * root URL where your application server is hosted.
+	 * The canonical, stable URL where this Better Auth server is hosted, e.g.
+	 * `"https://myapp.com"`. It anchors identity-bearing values that must not
+	 * change between requests: the OAuth/OIDC issuer, JWT `iss`/`aud`, the
+	 * social-login `redirect_uri`, and the Passkey relying-party id.
 	 *
-	 * Can be configured as:
-	 * - A static string: `"https://myapp.com"`
-	 * - A dynamic config with allowed hosts for multi-domain deployments
+	 * If not set, the system checks the environment variables
+	 * `BETTER_AUTH_URL`, `NEXT_PUBLIC_BETTER_AUTH_URL`, etc., and finally falls
+	 * back to the origin of the incoming request.
 	 *
-	 * If not explicitly set, the system will check environment variables:
-	 * `BETTER_AUTH_URL`, `NEXT_PUBLIC_BETTER_AUTH_URL`, etc.
+	 * For multi-domain, preview, or white-label deployments, keep `baseURL`
+	 * fixed and list the extra hosts in {@link BetterAuthOptions.trustedOrigins}
+	 * (a static array or a per-request function). Cookies and self-referential
+	 * links (email verification, magic links, password reset) then follow the
+	 * host the request actually arrived on, while identity stays anchored here.
 	 *
 	 * @example
 	 * ```ts
-	 * // Static URL
 	 * baseURL: "https://myapp.com"
-	 *
-	 * // Dynamic with allowed hosts (for Vercel, multi-domain, etc.)
-	 * baseURL: {
-	 *   allowedHosts: ["myapp.com", "*.vercel.app", "preview-*.myapp.com"],
-	 *   fallback: "https://myapp.com"
-	 * }
 	 * ```
 	 */
-	baseURL?: BaseURLConfig | undefined;
+	baseURL?: string | undefined;
 	/**
 	 * Base path for the Better Auth. This is typically
 	 * the path where the

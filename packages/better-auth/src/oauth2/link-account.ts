@@ -1,6 +1,7 @@
 import type { GenericEndpointContext } from "@better-auth/core";
 import { isDevelopment, logger } from "@better-auth/core/env";
 import { createEmailVerificationToken } from "../api";
+import { getRequestBaseURL } from "../context/helpers";
 import { setAccountCookie } from "../cookies/session-store";
 import type { Account, User } from "../types";
 import { isAPIError } from "../utils/is-api-error";
@@ -221,7 +222,7 @@ export async function handleOAuthUserInfo(
 					undefined,
 					c.context.options.emailVerification?.expiresIn,
 				);
-				const url = `${c.context.baseURL}/verify-email?token=${token}&callbackURL=${encodeURIComponent(
+				const url = `${getRequestBaseURL(c)}/verify-email?token=${token}&callbackURL=${encodeURIComponent(
 					callbackURL || "/",
 				)}`;
 				await c.context.runInBackgroundOrAwait(

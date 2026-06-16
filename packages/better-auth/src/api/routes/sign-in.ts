@@ -4,7 +4,7 @@ import type { User } from "@better-auth/core/db";
 import { APIError, BASE_ERROR_CODES } from "@better-auth/core/error";
 import { SocialProviderListEnum } from "@better-auth/core/social-providers";
 import * as z from "zod";
-import { getAwaitableValue } from "../../context/helpers";
+import { getAwaitableValue, getRequestBaseURL } from "../../context/helpers";
 import { setSessionCookie } from "../../cookies";
 import { parseUserOutput } from "../../db/schema";
 import { missingEmailLogMessage } from "../../oauth2/errors";
@@ -549,7 +549,7 @@ export const signInEmail = <O extends BetterAuthOptions>() =>
 					const callbackURL = ctx.body.callbackURL
 						? encodeURIComponent(ctx.body.callbackURL)
 						: encodeURIComponent("/");
-					const url = `${ctx.context.baseURL}/verify-email?token=${token}&callbackURL=${callbackURL}`;
+					const url = `${getRequestBaseURL(ctx)}/verify-email?token=${token}&callbackURL=${callbackURL}`;
 					await ctx.context.runInBackgroundOrAwait(
 						ctx.context.options.emailVerification.sendVerificationEmail(
 							{

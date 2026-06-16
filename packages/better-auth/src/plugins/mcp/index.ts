@@ -16,15 +16,11 @@ import { createHash } from "@better-auth/utils/hash";
 import { SignJWT } from "jose";
 import * as z from "zod";
 import { APIError, getSessionFromCtx } from "../../api";
-import { resolveDynamicTrustedProxyHeaders } from "../../context/helpers";
+import { shouldTrustProxyHeaders } from "../../context/helpers";
 import { expireCookie, parseSetCookieHeader } from "../../cookies";
 import { constantTimeEqual, generateRandomString } from "../../crypto";
 import { HIDE_METADATA } from "../../utils";
-import {
-	getBaseURL,
-	isDynamicBaseURLConfig,
-	resolveBaseURL,
-} from "../../utils/url";
+import { getBaseURL } from "../../utils/url";
 import { PACKAGE_VERSION } from "../../version";
 import type {
 	Client,
@@ -1075,21 +1071,16 @@ export const withMcpAuth = <
 ) => {
 	return async (req: Request) => {
 		const basePath = auth.options.basePath || "/api/auth";
-		const trustedProxyHeaders = resolveDynamicTrustedProxyHeaders(auth.options);
-		const baseURL = isDynamicBaseURLConfig(auth.options.baseURL)
-			? resolveBaseURL(
-					auth.options.baseURL,
-					basePath,
-					req,
-					undefined,
-					trustedProxyHeaders,
-				)
-			: getBaseURL(
-					typeof auth.options.baseURL === "string"
-						? auth.options.baseURL
-						: undefined,
-					basePath,
-				);
+		// The protected-resource metadata URL identifies this resource server, so
+		// it uses the canonical baseURL; only when no baseURL is configured does it
+		// fall back to the origin the request arrived on.
+		const baseURL = getBaseURL(
+			auth.options.baseURL,
+			basePath,
+			req,
+			undefined,
+			shouldTrustProxyHeaders(auth.options),
+		);
 		if (!baseURL && !isProduction) {
 			logger.warn("Unable to get the baseURL, please check your config!");
 		}
